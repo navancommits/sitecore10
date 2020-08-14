@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "deploymentId": {
+      "value": ""
+    },
+    "location": {
+      "value": "australiaeast"
+    },
+    "sqlServerLogin": {
+      "value": "natydmin"
+    },
+    "sqlServerPassword": {
+      "value": "sqlNaV!N"
+    },
+    "siMsDeployPackageUrl": {
+      "value": "https://stgacc20200813.blob.core.windows.net/scwdptorage/Sitecore.IdentityServer.5.0.0-r00277.scwdp.zip?sp=r&st=2020-08-14T03:54:44Z&se=2020-08-14T11:54:44Z&spr=https&sv=2019-12-12&sr=b&sig=NKtqbFThCaRosYP2lYZUqkt5wccZ%2F3BUhvCl6%2BtWQyY%3D"
+    },
+    "singleMsDeployPackageUrl": {
+      "value": "https://stgacc20200813.blob.core.windows.net/scwdptorage/Sitecore%2010.0.0%20rev.%20004346%20(WDP%20XMSingle%20packages).zip?sp=r&st=2020-08-14T03:52:31Z&se=2020-08-14T11:52:31Z&spr=https&sv=2019-12-12&sr=b&sig=cxuGMiQFZ7b3pVTSyt5vsCJTnxZdCod65jJtASocKsk%3D"
+    },
+    "sitecoreAdminPassword": {
+      "value": "nee+hakR!5H"
+    },
+    "licenseXml": {
+      "value": ""
+    },
+    "authCertificateBlob":{
+      "value": ""
+    },
+    "authCertificatePassword":{
+      "value": "Password12345"
+    }
+  }
+}
