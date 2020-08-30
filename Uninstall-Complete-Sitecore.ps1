@@ -7,7 +7,7 @@ Param(
  [string]$CommerceServicesPostfix = "Sc",
  [string]$SolrService = 'xc10solr-8.4.0',
  [string]$PathToSolr = 'C:\Solr\xc10solr-8.4.0',
- [string]$SqlServer = 'srvername\dbname',
+ [string]$SqlServer = 'mcname\instNm',
  [string]$SqlAccount = 'sa',
  [string]$SqlPassword = 'sqlpwd',
  [string]$SitecorexConnectSiteName = "xc10xconnect.dev.local",
@@ -27,7 +27,7 @@ Function Remove-Service{
  param(
   [string]$serviceName
  )
- if(Get-Service $serviceName -ErrorAction SilentlyContinue){
+ if(Get-Service $serviceName -ErrorAction SilentlyContinue){  
   sc.exe delete $serviceName -Force
  }
 }
@@ -37,17 +37,10 @@ Function Stop-Service{
  param(
   [string]$serviceName
  )
-If (Get-Service $serviceName -ErrorAction SilentlyContinue) {
-
-    If ((Get-Service $serviceName).Status -eq 'Running') {
-
-        Stop-Service $serviceName 
-        Write-Host "Stopping $serviceName"
-
-    } 
+ if(Get-Service $serviceName -ErrorAction SilentlyContinue){
+  sc.exe stop $serviceName -Force  
+ }
 }
-}
-
 
 Function Remove-Website{
  [CmdletBinding()]
@@ -94,7 +87,6 @@ if (Test-Path "IIS:\Sites\Default Web Site\$SitecoreIdentityServerSiteName") { S
 if (Test-Path "IIS:\Sites\Default Web Site\$SiteName") { Stop-Website -Name $SiteName } 
 if (Test-Path "IIS:\Sites\Default Web Site\$SitecorexConnectSiteName") { Stop-Website -Name $SitecorexConnectSiteName } 
 
-$IISPath = "IIS:\AppPools"
 
 if (Test-Path "IIS:\AppPools\$CommerceOpsSiteName") { Stop-WebAppPool -appPoolName $CommerceOpsSiteName }
 if (Test-Path "IIS:\AppPools\$CommerceShopsSiteName") { Stop-WebAppPool -appPoolName $CommerceShopsSiteName }
@@ -105,62 +97,23 @@ if (Test-Path "IIS:\AppPools\$SitecoreIdentityServerSiteName") { Stop-WebAppPool
 if (Test-Path "IIS:\AppPools\$SiteName") { Stop-WebAppPool -appPoolName $SiteName }
 if (Test-Path "IIS:\AppPools\$SitecorexConnectSiteName") { Stop-WebAppPool -appPoolName $SitecorexConnectSiteName }
 
-#Stop Solr Service
+
 Write-Host "Stopping solr service"
 Stop-Service $SolrService  
 Write-Host "Solr service stopped successfully"
-
-Remove-Service $SolrService 
-   
-#Delete solr cores
-Write-Host "Deleting Solr directory"
-$pathToCores = $PathToSolr
-Remove-Item $PathToSolr -recurse -force 
-Write-Host "Solr folder deleted successfully"
-
 
 Write-Host "Stopping Marketing Automation service"
 Stop-Service $SitecoreMarketingAutomationService 
 Write-Host "Marketing Automation service stopped successfully"
 
-Remove-Service $SitecoreMarketingAutomationService
-
 Write-Host "Stopping Processing Engine service"
 Stop-Service $SitecoreProcessingEngineService  
 Write-Host "Processing Engine service stopped successfully"
-
-Remove-Service $SitecoreProcessingEngineService
 
 Write-Host "Stopping Index Worker service"
 Stop-Service $SitecoreIndexWorkerService  
 Write-Host "Index Worker service stopped successfully"
 
-Remove-Service $SitecoreIndexWorkerService
-
-
-#Remove Sites and App Pools from IIS
-Write-Host "Deleting Websites"
-Remove-Website -siteName $CommerceOpsSiteName 
-Remove-Website -siteName $CommerceShopsSiteName 
-Remove-Website -siteName $CommerceAuthoringSiteName 
-Remove-Website -siteName $CommerceMinionsSiteName  
-Remove-Website -siteName $SitecoreBizFxSiteName 
-Remove-Website -siteName $SitecorexConnectSiteName 
-Remove-Website -siteName $SitecoreIdentityServerSiteName 
-Remove-Website -siteName $SiteName 
-Write-Host "Websites deleted"
-
-
-Write-Host "Deleting Application pools"
-Remove-AppPool -appPoolName $CommerceOpsSiteName 
-Remove-AppPool -appPoolName $CommerceShopsSiteName 
-Remove-AppPool -appPoolName $CommerceAuthoringSiteName 
-Remove-AppPool -appPoolName $CommerceMinionsSiteName 
-Remove-AppPool -appPoolName $SitecoreBizFxSiteName 
-Remove-AppPool -appPoolName $SitecoreIdentityServerSiteName 
-Remove-AppPool -appPoolName $SiteName 
-Remove-AppPool -appPoolName $SitecorexConnectSiteName 
-Write-Host "Application pools deleted"
 
 Write-Host "Deleting Websites from wwwroot"
 rm C:\inetpub\wwwroot\$CommerceOpsSiteName -force -recurse -ea ig
@@ -173,8 +126,42 @@ rm C:\inetpub\wwwroot\$SiteName  -recurse -force  -ea ig
 rm C:\inetpub\wwwroot\$SitecorexConnectSiteName  -recurse -force   -ea ig
 Write-Host "Websites removed from wwwroot"
 
+Write-Host "Deleting Application pools"
+Remove-AppPool -appPoolName $CommerceOpsSiteName 
+Remove-AppPool -appPoolName $CommerceShopsSiteName 
+Remove-AppPool -appPoolName $CommerceAuthoringSiteName 
+Remove-AppPool -appPoolName $CommerceMinionsSiteName 
+Remove-AppPool -appPoolName $SitecoreBizFxSiteName 
+Remove-AppPool -appPoolName $SitecoreIdentityServerSiteName 
+Remove-AppPool -appPoolName $SiteName 
+Remove-AppPool -appPoolName $SitecorexConnectSiteName 
+Write-Host "Application pools deleted"
 
-#Write-TaskHeader -TaskName "SQL Server" -TaskType "Drop Databases"
+#Remove Sites from IIS
+Write-Host "Deleting Websites"
+Remove-Website -siteName $CommerceOpsSiteName 
+Remove-Website -siteName $CommerceShopsSiteName 
+Remove-Website -siteName $CommerceAuthoringSiteName 
+Remove-Website -siteName $CommerceMinionsSiteName  
+Remove-Website -siteName $SitecoreBizFxSiteName 
+Remove-Website -siteName $SitecorexConnectSiteName 
+Remove-Website -siteName $SitecoreIdentityServerSiteName 
+Remove-Website -siteName $SiteName 
+Write-Host "Websites deleted"
+
+#Delete solr cores
+Write-Host "Deleting Solr directory"
+$pathToCores = $PathToSolr
+rm $PathToSolr -recurse -force  -ea ig
+Write-Host "Solr folder deleted successfully"
+
+Write-Host "Removing Services"
+Remove-Service $SolrService    
+Remove-Service $SitecoreMarketingAutomationService
+Remove-Service $SitecoreProcessingEngineService
+Remove-Service $SitecoreIndexWorkerService
+Write-Host "Solr,Marketing Automation, Processing Engine, Index Worker services removed"
+
 #Drop databases from SQL
 Write-Host "Dropping databases from SQL server"
 push-location
