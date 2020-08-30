@@ -1,13 +1,13 @@
 #define parameters
 Param(
  [string]$Prefix = "xc10",
- [string]$CommDbPrefix = "Sitecore",
+ [string]$CommDbPrefix = "SitecoreCommerce",
  [string]$SiteName = "xc10sc.dev.local",  
  [string]$SitecoreBizFxSiteName = "SitecoreBizFx",
  [string]$CommerceServicesPostfix = "Sc",
  [string]$SolrService = 'xc10solr-8.4.0',
  [string]$PathToSolr = 'C:\Solr\xc10solr-8.4.0',
- [string]$SqlServer = 'dbservername\instancename',
+ [string]$SqlServer = 'srvername\dbname',
  [string]$SqlAccount = 'sa',
  [string]$SqlPassword = 'sqlpwd',
  [string]$SitecorexConnectSiteName = "xc10xconnect.dev.local",
@@ -28,7 +28,7 @@ Function Remove-Service{
   [string]$serviceName
  )
  if(Get-Service $serviceName -ErrorAction SilentlyContinue){
-  sc.exe delete $serviceName
+  sc.exe delete $serviceName -Force
  }
 }
 
@@ -41,7 +41,7 @@ If (Get-Service $serviceName -ErrorAction SilentlyContinue) {
 
     If ((Get-Service $serviceName).Status -eq 'Running') {
 
-        Stop-Service $serviceName
+        Stop-Service $serviceName 
         Write-Host "Stopping $serviceName"
 
     } 
@@ -57,6 +57,22 @@ Function Remove-Website{
 
  $appCmd = "C:\windows\system32\inetsrv\appcmd.exe"
  & $appCmd delete site $siteName
+}
+
+Function Stop-WebAppPool{
+ [CmdletBinding()]
+ param(  
+  [string]$appPoolName
+ )
+	$ApplicationPoolStatus = Get-WebAppPoolState $appPoolName
+	$ApplicationPoolStatusValue = $ApplicationPoolStatus.Value
+
+	#Write-Host "$appPoolName -> $ApplicationPoolStatusValue"
+
+	if($ApplicationPoolStatus.Value -ne "Stopped")
+	{	
+		Stop-WebAppPool -Name $appPoolName
+	}
 }
 
 Function Remove-AppPool{
@@ -80,24 +96,26 @@ if (Test-Path "IIS:\Sites\Default Web Site\$SitecorexConnectSiteName") { Stop-We
 
 $IISPath = "IIS:\AppPools"
 
-if (Test-Path "IIS:\AppPools\$CommerceOpsSiteName") { Stop-WebAppPool -Name $CommerceOpsSiteName }
-if (Test-Path "IIS:\AppPools\$CommerceShopsSiteName") { Stop-WebAppPool -Name $CommerceShopsSiteName }
-if (Test-Path "IIS:\AppPools\$CommerceAuthoringSiteName") { Stop-WebAppPool -Name $CommerceAuthoringSiteName }
-if (Test-Path "IIS:\AppPools\$CommerceMinionsSiteName") { Stop-WebAppPool -Name $CommerceMinionsSiteName }
-if (Test-Path "IIS:\AppPools\$SitecoreBizFxSiteName") { Stop-WebAppPool -Name $SitecoreBizFxSiteName }
-if (Test-Path "IIS:\AppPools\$SitecoreIdentityServerSiteName") { Stop-WebAppPool -Name $SitecoreIdentityServerSiteName }
-if (Test-Path "IIS:\AppPools\$SiteName") { Stop-WebAppPool -Name $SiteName }
-if (Test-Path "IIS:\AppPools\$SitecorexConnectSiteName") { Stop-WebAppPool -Name $SitecorexConnectSiteName }
+if (Test-Path "IIS:\AppPools\$CommerceOpsSiteName") { Stop-WebAppPool -appPoolName $CommerceOpsSiteName }
+if (Test-Path "IIS:\AppPools\$CommerceShopsSiteName") { Stop-WebAppPool -appPoolName $CommerceShopsSiteName }
+if (Test-Path "IIS:\AppPools\$CommerceAuthoringSiteName") { Stop-WebAppPool -appPoolName $CommerceAuthoringSiteName }
+if (Test-Path "IIS:\AppPools\$CommerceMinionsSiteName") { Stop-WebAppPool -appPoolName $CommerceMinionsSiteName }
+if (Test-Path "IIS:\AppPools\$SitecoreBizFxSiteName") { Stop-WebAppPool -appPoolName $SitecoreBizFxSiteName }
+if (Test-Path "IIS:\AppPools\$SitecoreIdentityServerSiteName") { Stop-WebAppPool -appPoolName $SitecoreIdentityServerSiteName }
+if (Test-Path "IIS:\AppPools\$SiteName") { Stop-WebAppPool -appPoolName $SiteName }
+if (Test-Path "IIS:\AppPools\$SitecorexConnectSiteName") { Stop-WebAppPool -appPoolName $SitecorexConnectSiteName }
 
 #Stop Solr Service
 Write-Host "Stopping solr service"
 Stop-Service $SolrService  
 Write-Host "Solr service stopped successfully"
+
+Remove-Service $SolrService 
    
 #Delete solr cores
 Write-Host "Deleting Solr directory"
 $pathToCores = $PathToSolr
-Remove-Item $PathToSolr -recurse -force -ErrorAction stop
+Remove-Item $PathToSolr -recurse -force 
 Write-Host "Solr folder deleted successfully"
 
 
@@ -122,26 +140,26 @@ Remove-Service $SitecoreIndexWorkerService
 
 #Remove Sites and App Pools from IIS
 Write-Host "Deleting Websites"
-Remove-Website -siteName $CommerceOpsSiteName -ErrorAction stop
-Remove-Website -siteName $CommerceShopsSiteName -ErrorAction stop
-Remove-Website -siteName $CommerceAuthoringSiteName -ErrorAction stop
-Remove-Website -siteName $CommerceMinionsSiteName  -ErrorAction stop
-Remove-Website -siteName $SitecoreBizFxSiteName -ErrorAction stop
-Remove-Website -siteName $SitecorexConnectSiteName -ErrorAction stop
-Remove-Website -siteName $SitecoreIdentityServerSiteName -ErrorAction stop
-Remove-Website -siteName $SiteName -ErrorAction stop
+Remove-Website -siteName $CommerceOpsSiteName 
+Remove-Website -siteName $CommerceShopsSiteName 
+Remove-Website -siteName $CommerceAuthoringSiteName 
+Remove-Website -siteName $CommerceMinionsSiteName  
+Remove-Website -siteName $SitecoreBizFxSiteName 
+Remove-Website -siteName $SitecorexConnectSiteName 
+Remove-Website -siteName $SitecoreIdentityServerSiteName 
+Remove-Website -siteName $SiteName 
 Write-Host "Websites deleted"
 
 
 Write-Host "Deleting Application pools"
-Remove-AppPool -appPoolName $CommerceOpsSiteName -ErrorAction stop
-Remove-AppPool -appPoolName $CommerceShopsSiteName -ErrorAction stop
-Remove-AppPool -appPoolName $CommerceAuthoringSiteName -ErrorAction stop
-Remove-AppPool -appPoolName $CommerceMinionsSiteName -ErrorAction stop
-Remove-AppPool -appPoolName $SitecoreBizFxSiteName -ErrorAction stop
-Remove-AppPool -appPoolName $SitecoreIdentityServerSiteName -ErrorAction stop
-Remove-AppPool -appPoolName $SiteName -ErrorAction stop
-Remove-AppPool -appPoolName $SitecorexConnectSiteName -ErrorAction stop
+Remove-AppPool -appPoolName $CommerceOpsSiteName 
+Remove-AppPool -appPoolName $CommerceShopsSiteName 
+Remove-AppPool -appPoolName $CommerceAuthoringSiteName 
+Remove-AppPool -appPoolName $CommerceMinionsSiteName 
+Remove-AppPool -appPoolName $SitecoreBizFxSiteName 
+Remove-AppPool -appPoolName $SitecoreIdentityServerSiteName 
+Remove-AppPool -appPoolName $SiteName 
+Remove-AppPool -appPoolName $SitecorexConnectSiteName 
 Write-Host "Application pools deleted"
 
 Write-Host "Deleting Websites from wwwroot"
@@ -164,58 +182,58 @@ import-module sqlps
 
 Write-Host $("Dropping Sitecore databases")
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_Core]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_Master]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_Web]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_EXM.Master]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_ReferenceData]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_Reporting]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_ExperienceForms]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_MarketingAutomation]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_Processing.Pools]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_Processing.Tasks]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_ProcessingEngineStorage]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_ProcessingEngineTasks]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_Xdb.Collection.Shard0]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_Xdb.Collection.Shard1]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_Xdb.Collection.ShardMapManager]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $sitecoreDbPrefix = "DROP DATABASE IF EXISTS [" + $Prefix + "_Messaging]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $sitecoreDbPrefix 
 
 $commerceDbPrefix = "DROP DATABASE IF EXISTS [" + $CommDbPrefix + "_Global]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $commerceDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $commerceDbPrefix 
 
 $commerceDbPrefix = "DROP DATABASE IF EXISTS [" + $CommDbPrefix + "_SharedEnvironments]"
-invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $commerceDbPrefix -ErrorAction stop
+invoke-sqlcmd -ServerInstance $SqlServer -U $SqlAccount -P $SqlPassword -Query $commerceDbPrefix 
 
 Write-Host "Databases dropped successfully"
 pop-location
